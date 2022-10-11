@@ -1,9 +1,14 @@
-from lib2to3.pgen2 import driver
 import os
 
 from typing import List
 from numpy import outer
 from qgis.core import *
+
+#####---------------------------DEFINE VARIABLES HERE-----------------------------------####
+landward_baseline_name = "landward_baseline0" # define name here
+seaward_baseline_name = "seaward_baseline0" # define name here
+spacing = 2 # transect origin spacing in meters
+#####---------------------------END-------------------------------------------------####
 
 class TransectUtility:
   @classmethod
@@ -64,7 +69,6 @@ class TransectUtility:
       # create dir
       os.makedirs(output_path)
 
-
 class TransectGenerator:
   def __init__(
     self, 
@@ -83,7 +87,6 @@ class TransectGenerator:
   # creates equally spaced points in landward baseline
   # ... spaced in meters defined by the spacing attribute
   def generateTransectOrigins(self) -> List[QgsPointXY]: 
-    print('generating transect origins')
     # get the landward baseline
     # assumes only one feature (landward baseline line) in the landward baseline layer
     # then get the geometry of the baseline
@@ -98,26 +101,26 @@ class TransectGenerator:
     while current_distance <= lw_baseline_geometry.length():
       point = lw_baseline_geometry.interpolate(current_distance).asPoint()
       transect_origins.append(point)
+
+      current_distance += self.spacing
     
-    print('done generating transect origins')
     return transect_origins
 
   # generates a list of all shortest lines from a transect 
   # ... origin to the seaward baseline
-  def generateTransects(self, transect_origins: List[QgsPointXY]) -> List[QgsMultiLineString]:
-    print('generating transects')
+  def generateTransects(self, transect_origins: List[QgsPointXY]) -> List[QgsLineString]:
     # get the seaward baseline
     # assume only one feature in seaward baseline which is the seaward baseline
     # then get the geometry
-    transects : List[QgsMultiLineString] = []
+    transects : List[QgsLineString] = []
+    sw_baseline_geom = TransectUtility.extract_geometries(self.seaward_baseline)[0]
 
     for transect_origin in transect_origins:
-      transect = QgsGeometry.fromPointXY(transect_origin).shortestLine()
+      transect = QgsGeometry.fromPointXY(transect_origin).shortestLine(sw_baseline_geom).asPolyline()
       transects.append(transect)
     
-    print('done generating transects')
     return transects
-  
+
   # saves the transect origins to a shape file
   def saveTransectOrigins(self, transect_origins: List[QgsPointXY]):
     output_fileName: str = "transectOrigins_{basename}.shp".format(basename=self.landward_baseline.name())
@@ -135,14 +138,14 @@ class TransectGenerator:
 
     for transect_origin in transect_origins:
       fet = QgsFeature()
-      fet.setGeometry(transect_origin)
+      fet.setGeometry(QgsGeometry.fromPointXY(transect_origin))
 
       writer.addFeature(fet)
     
     del writer
 
   # saves the transects to a shpae file
-  def saveTransects(self, transect_list: List[QgsMultiLineString]):
+  def saveTransects(self, transects: List[QgsMultiLineString]):
     output_fileName: str = "transects_{basename}.shp".format(basename=self.landward_baseline.name())
     geometry_type = QgsWkbTypes.LineString
     fields: QgsFields = QgsFields()
@@ -158,7 +161,7 @@ class TransectGenerator:
 
     for transect in transects:
       fet = QgsFeature()
-      fet.setGeometry(transect)
+      fet.setGeometry(QgsGeometry.fromPolylineXY(transect))
 
       writer.addFeature(fet)
     
@@ -173,5 +176,25 @@ class TransectGenerator:
 
     self.saveTransectOrigins(transect_origins)
     self.saveTransects(transects)
+    print('transects generated!')
 
-    print('transects generated')
+project = QgsProject.instance() 
+landward_baseline = project.mapLayersByName(landward_baseline_name)
+seaward_baseline = project.mapLayersByName(seaward_baseline_name)
+
+if landward_baseline == [] and seaward_baseline == []:
+  print('check layer names. all layers not detected')
+elif landward_baseline == []:
+  print('check landward baseline name. layer not detected')
+elif seaward_baseline == []:
+  print('check seaward baseline name. layer not detected')
+else:
+  landward_baseline_ = landward_baseline[0]
+  seaward_baseline_ = seaward_baseline[0]
+  t = TransectGenerator(
+    landward_baseline_,
+    seaward_baseline_,
+    spacing
+  )
+
+  t.run() 
