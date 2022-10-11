@@ -110,9 +110,10 @@ class TransectGenerator:
     # assume only one feature in seaward baseline which is the seaward baseline
     # then get the geometry
     transects : List[QgsMultiLineString] = []
+    sw_baseline_geom = TransectUtility.extract_geometries(self.seaward_baseline)[0]
 
     for transect_origin in transect_origins:
-      transect = QgsGeometry.fromPointXY(transect_origin).shortestLine()
+      transect = QgsGeometry.fromPointXY(transect_origin).shortestLine(sw_baseline_geom)
       transects.append(transect)
     
     print('done generating transects')
