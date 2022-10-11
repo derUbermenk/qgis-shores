@@ -4,9 +4,10 @@ from typing import List
 from numpy import outer
 from qgis.core import *
 
-#####---------------------------DEFINE NAMES HERE-----------------------------------####
+#####---------------------------DEFINE VARIABLES HERE-----------------------------------####
 landward_baseline_name = "landward_baseline0" # define name here
 seaward_baseline_name = "seaward_baseline0" # define name here
+spacing = 2 # transect origin spacing in meters
 #####---------------------------END-------------------------------------------------####
 
 class TransectUtility:
@@ -107,23 +108,19 @@ class TransectGenerator:
 
   # generates a list of all shortest lines from a transect 
   # ... origin to the seaward baseline
-  def generateTransects(self, transect_origins: List[QgsPointXY]) -> List[QgsMultiLineString]:
-    print('generating transects')
+  def generateTransects(self, transect_origins: List[QgsPointXY]) -> List[QgsLineString]:
     # get the seaward baseline
     # assume only one feature in seaward baseline which is the seaward baseline
     # then get the geometry
-    transects : List[QgsMultiLineString] = []
+    transects : List[QgsLineString] = []
     sw_baseline_geom = TransectUtility.extract_geometries(self.seaward_baseline)[0]
 
     for transect_origin in transect_origins:
-      transect = QgsGeometry.fromPointXY(transect_origin).shortestLine(sw_baseline_geom)
-      print(transect)
-      break
+      transect = QgsGeometry.fromPointXY(transect_origin).shortestLine(sw_baseline_geom).asPolyline()
       transects.append(transect)
     
-    print('done generating transects')
     return transects
-  
+
   # saves the transect origins to a shape file
   def saveTransectOrigins(self, transect_origins: List[QgsPointXY]):
     output_fileName: str = "transectOrigins_{basename}.shp".format(basename=self.landward_baseline.name())
@@ -164,7 +161,7 @@ class TransectGenerator:
 
     for transect in transects:
       fet = QgsFeature()
-      fet.setGeometry(transect)
+      fet.setGeometry(QgsGeometry.fromPolylineXY(transect))
 
       writer.addFeature(fet)
     
@@ -179,8 +176,7 @@ class TransectGenerator:
 
     self.saveTransectOrigins(transect_origins)
     self.saveTransects(transects)
-
-    print('transects generated')
+    print('transects generated!')
 
 project = QgsProject.instance() 
 landward_baseline = project.mapLayersByName(landward_baseline_name)
@@ -198,7 +194,7 @@ else:
   t = TransectGenerator(
     landward_baseline_,
     seaward_baseline_,
-    5
+    spacing
   )
 
   t.run() 
