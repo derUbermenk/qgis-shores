@@ -83,7 +83,6 @@ class TransectGenerator:
   # creates equally spaced points in landward baseline
   # ... spaced in meters defined by the spacing attribute
   def generateTransectOrigins(self) -> List[QgsPointXY]: 
-    print('generating transect origins')
     # get the landward baseline
     # assumes only one feature (landward baseline line) in the landward baseline layer
     # then get the geometry of the baseline
@@ -98,8 +97,9 @@ class TransectGenerator:
     while current_distance <= lw_baseline_geometry.length():
       point = lw_baseline_geometry.interpolate(current_distance).asPoint()
       transect_origins.append(point)
+
+      current_distance += self.spacing
     
-    print('done generating transect origins')
     return transect_origins
 
   # generates a list of all shortest lines from a transect 
