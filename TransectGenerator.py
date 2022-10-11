@@ -1,9 +1,13 @@
-from lib2to3.pgen2 import driver
 import os
 
 from typing import List
 from numpy import outer
 from qgis.core import *
+
+#####---------------------------DEFINE NAMES HERE-----------------------------------####
+landward_baseline_name = "landward_baseline0" # define name here
+seaward_baseline_name = "seaward_baseline0" # define name here
+#####---------------------------END-------------------------------------------------####
 
 class TransectUtility:
   @classmethod
@@ -136,7 +140,7 @@ class TransectGenerator:
 
     for transect_origin in transect_origins:
       fet = QgsFeature()
-      fet.setGeometry(transect_origin)
+      fet.setGeometry(QgsGeometry.fromPointXY(transect_origin))
 
       writer.addFeature(fet)
     
@@ -159,7 +163,7 @@ class TransectGenerator:
 
     for transect in transects:
       fet = QgsFeature()
-      fet.setGeometry(transect)
+      fet.setGeometry(QgsGeometry.fromMultiPolylineXY(transect))
 
       writer.addFeature(fet)
     
@@ -176,3 +180,24 @@ class TransectGenerator:
     self.saveTransects(transects)
 
     print('transects generated')
+
+project = QgsProject.instance() 
+landward_baseline = project.mapLayersByName(landward_baseline_name)
+seaward_baseline = project.mapLayersByName(seaward_baseline_name)
+
+if landward_baseline == [] and seaward_baseline == []:
+  print('check layer names. all layers not detected')
+elif landward_baseline == []:
+  print('check landward baseline name. layer not detected')
+elif seaward_baseline == []:
+  print('check seaward baseline name. layer not detected')
+else:
+  landward_baseline_ = landward_baseline[0]
+  seaward_baseline_ = seaward_baseline[0]
+  t = TransectGenerator(
+    landward_baseline_,
+    seaward_baseline_,
+    5
+  )
+
+  t.run() 
