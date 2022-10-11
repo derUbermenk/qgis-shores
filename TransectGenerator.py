@@ -68,7 +68,6 @@ class TransectUtility:
       # create dir
       os.makedirs(output_path)
 
-
 class TransectGenerator:
   def __init__(
     self, 
@@ -118,6 +117,8 @@ class TransectGenerator:
 
     for transect_origin in transect_origins:
       transect = QgsGeometry.fromPointXY(transect_origin).shortestLine(sw_baseline_geom)
+      print(transect)
+      break
       transects.append(transect)
     
     print('done generating transects')
@@ -147,7 +148,7 @@ class TransectGenerator:
     del writer
 
   # saves the transects to a shpae file
-  def saveTransects(self, transect_list: List[QgsMultiLineString]):
+  def saveTransects(self, transects: List[QgsMultiLineString]):
     output_fileName: str = "transects_{basename}.shp".format(basename=self.landward_baseline.name())
     geometry_type = QgsWkbTypes.LineString
     fields: QgsFields = QgsFields()
@@ -163,7 +164,7 @@ class TransectGenerator:
 
     for transect in transects:
       fet = QgsFeature()
-      fet.setGeometry(QgsGeometry.fromMultiPolylineXY(transect))
+      fet.setGeometry(transect)
 
       writer.addFeature(fet)
     
