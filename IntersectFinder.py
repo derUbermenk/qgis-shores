@@ -135,9 +135,8 @@ class IntersectFinder:
         # ... no intersection: intersection_point.isEmpty() == true
         # ... one intersection: singleType as Point
         # ... two or more intersections: multitype as Multipoint
-        transect = transect.geometry()
-        origin: QgsGeometry = transect.asMultiPolyline()[0][0]
-        intersection_point: QgsGeometry = transect.geometry().intersection(shoreline.geometry)
+        origin: QgsGeometry = transect.geometry().asMultiPolyline()[0][0]
+        intersection_point: QgsGeometry = transect.geometry().intersection(shoreline.geometry())
 
         if intersection_point.isEmpty():
           # no intersection point detected
@@ -173,15 +172,17 @@ class IntersectFinder:
 
         # then write to CoastCR like writer
         coastCR_fet = QgsFeature()
-        coastCR_intersect_fet_geom = transect.interpolate(distance)
-        coastCR_fet.setAttributes([transect.id(), shoreline.id()])
+        coastCR_intersect_fet_geom = transect.geometry().interpolate(distance)
+        coastCR_fet.setAttributes([transect.id(), shoreline.id(), distance])
         coastCR_fet.setGeometry(coastCR_intersect_fet_geom)
 
         coastCR_writer.addFeature(coastCR_fet)
 
       # then write intersection distances to CoastSat like writer  
-      coastSat_writer.addFeature([shoreline.id()] + intersections)
-      # coastSat_writer.addFeature([shoreline.date()] + intersections)  # get shoreline date attribute
+      coastSat_fet = QgsFeature()
+      print(shoreline['dates'])
+      coastSat_fet.setAttributes([shoreline['dates']] + intersections)
+      coastSat_writer.addFeature(coastSat_fet)
 
     del coastCR_writer
     del coastSat_writer
