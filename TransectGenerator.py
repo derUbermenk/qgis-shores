@@ -10,6 +10,17 @@ seaward_baseline_name = "seaward_baseline0" # define name here
 spacing = 2 # transect origin spacing in meters
 #####---------------------------END-------------------------------------------------####
 
+# recommended file structure
+# ... .
+# ... ├── aoi
+# ... ├── intersects
+# ... │   ├── coastCR
+# ... │   └── coastSat
+# ... ├── positions
+# ... ├── pyscripts
+# ... │   └── __pycache__
+# ... └── transects
+
 class TransectUtility:
   @classmethod
   def format_output_path(cls, output_dirname: str):
@@ -161,6 +172,8 @@ class TransectGenerator:
 
     for transect in transects:
       fet = QgsFeature()
+      # feature geometry will be set to multipolyline 
+      # ... once accessed from layer
       fet.setGeometry(QgsGeometry.fromPolylineXY(transect))
 
       writer.addFeature(fet)
