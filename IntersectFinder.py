@@ -6,8 +6,10 @@ from math import nan
 
 # --- DEFINE VARIABLES HERE --- # 
 
-transect_fileName = "transects_landward_baseline0.shp"
-shoreline_fileName = "dummy_position.shp"
+transect_fileName = "transects_lw_baseline.shp"
+shoreline_fileName = "cagliliog_shorelines.shp"
+
+# add warning when no file detected
 
 # -------- END ------- #
 
@@ -142,8 +144,9 @@ class IntersectFinder:
           # no intersection point detected
           # ... do nothing, keep the intersection point as nan in coastsat structure
           # ... and not add the feature in coastcr structure
-          pass
-        elif QgsWkbTypes.isSingleType(intersection_point.wkbType()):
+          continue
+
+        if QgsWkbTypes.isSingleType(intersection_point.wkbType()):
           # one intersection point is detected
           # ... intersection is of type QgsGeometry:Point can be cast as point
           intersection_point = intersection_point.asPoint()
@@ -180,7 +183,6 @@ class IntersectFinder:
 
       # then write intersection distances to CoastSat like writer  
       coastSat_fet = QgsFeature()
-      print(shoreline['dates'])
       coastSat_fet.setAttributes([shoreline['dates']] + intersections)
       coastSat_writer.addFeature(coastSat_fet)
 

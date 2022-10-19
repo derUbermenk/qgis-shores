@@ -3,11 +3,12 @@ import os
 from typing import List
 from numpy import outer
 from qgis.core import *
+from geojson import Feature, LineString, FeatureCollection
 
 #####---------------------------DEFINE VARIABLES HERE-----------------------------------####
-landward_baseline_name = "landward_baseline0" # define name here
-seaward_baseline_name = "seaward_baseline0" # define name here
-spacing = 2 # transect origin spacing in meters
+landward_baseline_name = "lw_baseline" # define name here
+seaward_baseline_name = "sw_baseline" # define name here
+spacing = 20 # transect origin spacing in meters
 #####---------------------------END-------------------------------------------------####
 
 # recommended file structure
@@ -106,7 +107,9 @@ class TransectGenerator:
     # the distance is greater than the lenght of the baseline geometry, all the while
     # interpolating to get the point associated with the interpolation of the given distance
     transect_origins: List[QgsPointXY] = []
-    lw_baseline_geometry = TransectUtility.extract_geometries(self.landward_baseline)[0]
+    lw_baseline_geometry = TransectUtility.extract_geometries(
+      self.landward_baseline
+    )[0]
 
     current_distance = 0
     while current_distance <= lw_baseline_geometry.length():
@@ -180,6 +183,36 @@ class TransectGenerator:
     
     del writer
 
+  def save_asGeojson(self, transects: List[QgsGeometry]):
+    feats: List[Feature] = []
+
+    for (transect_indx, transect) in enumerate(transects):
+      transect_name = "T{indx}".format(indx=transect_indx)
+      transect_geometry = transect
+
+      properties = {"name": transect_name}
+      geometry=LineString([(transect[0].x(), transect[0].y()), (transect[1].x(), transect[1].y())])
+      feature = Feature(geometry=geometry, properties=properties)
+
+      feats.append(feature)
+    
+
+    crs_info = ['EPSG', 3124]
+    crs_name = "urn:ogc:def:crs:{authority}::{code}".format(authority=crs_info[0], code=crs_info[1])
+    feature_collection = FeatureCollection(
+      crs={ "type": "name", "properties": { "name": crs_name } },
+      features=feats
+    )
+
+    geojson_filename = QgsProject.instance().baseName() + '.geojson'
+    output_path = QgsProject.instance().homePath() + '/transects/' + geojson_filename
+
+    with open(output_path, "w") as text_file:
+      text_file.write("{0}".format(feature_collection))
+
+
+      
+
 
   def run(self):
     transect_origins = self.generateTransectOrigins() 
@@ -189,6 +222,7 @@ class TransectGenerator:
 
     self.saveTransectOrigins(transect_origins)
     self.saveTransects(transects)
+    self.save_asGeojson(transects)
     print('transects generated!')
 
 project = QgsProject.instance() 
