@@ -211,12 +211,11 @@ class TransectGenerator:
       text_file.write("{0}".format(feature_collection))
 
 
-      
-
 
   def run(self):
     transect_origins = self.generateTransectOrigins() 
-    transects = self.generateTransects(transect_origins)
+    transects_unfiltered = self.generateTransects(transect_origins)
+    transects = self.filterTransects(transect_origins, transects_unfiltered)
 
     TransectUtility.init_output_path(self.output_path)
 
