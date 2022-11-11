@@ -5,6 +5,8 @@ from numpy import outer
 from qgis.core import *
 from geojson import Feature, LineString, FeatureCollection
 
+import math
+
 #####---------------------------DEFINE VARIABLES HERE-----------------------------------####
 landward_baseline_name = "lw_baseline" # define name here
 seaward_baseline_name = "sw_baseline" # define name here
@@ -23,6 +25,35 @@ spacing = 20 # transect origin spacing in meters
 # ... └── transects
 
 class TransectUtility:
+  @classmethod
+  def movingWindow(cls, myList, size):
+    left = 0
+    right = 0
+
+    newList = myList.copy()
+
+    while right <= len(newList) - 1:
+      if right - left + 1 == size:
+        average = sum(newList[left:right+1])/size
+        newList[left+size//2] = average
+
+
+        left+=1
+        right+=1
+
+      else: 
+        # keep moving right
+        right+=1
+    
+    return newList
+
+  @classmethod
+  def nextPoint(cls, azimuth, distance, origin):
+    x = distance*math.cos(math.radians(90-azimuth))
+    y = distance*math.sin(math.radians(90-azimuth))
+
+    return (origin[0]+x, origin[1]+y) 
+
   @classmethod
   def format_output_path(cls, output_dirname: str):
     file_path = "{homepath}/{output_directory}".format(
@@ -135,6 +166,27 @@ class TransectGenerator:
     
     return transects
 
+
+  
+  def filterTransects(self, transect_origins: List[QgsPointXY], transects_unfiltered: List[QgsLineString], distance: int, window_size: int) -> List[QgsLineString]:
+    filtered_lines: List[QgsLineString] = []
+
+    # get azimuths
+    azimuths = [line[0].azimuth(line[1]) for line in transects_unfiltered]
+
+    # do moving window
+    averaged_azimuths = TransectUtility.movingWindow(azimuths, window_size)
+
+    # assure averaged azimuths same number with transect origins
+    if len(averaged_azimuths) != len(transect_origins):
+      raise Exception("inconsistent number of azimuths and origins")
+
+    # create a new line based on the coordinates
+    for azimuth, origin in zip(averaged_azimuths, transect_origins):
+      filtered_lines.append(QgsLineString(origin, TransectUtility.nextPoint(azimuth, distance, origin)))
+
+    return filtered_lines
+
   # saves the transect origins to a shape file
   def saveTransectOrigins(self, transect_origins: List[QgsPointXY]):
     output_fileName: str = "transectOrigins_{basename}.shp".format(basename=self.landward_baseline.name())
@@ -210,12 +262,10 @@ class TransectGenerator:
     with open(output_path, "w") as text_file:
       text_file.write("{0}".format(feature_collection))
 
-
-
   def run(self):
     transect_origins = self.generateTransectOrigins() 
-    transects_unfiltered = self.generateTransects(transect_origins)
-    transects = self.filterTransects(transect_origins, transects_unfiltered)
+    transects = self.generateTransects(transect_origins)
+    transects = self.filterTransects(transect_origins, transects, 50, 5)
 
     TransectUtility.init_output_path(self.output_path)
 
