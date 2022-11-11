@@ -10,7 +10,7 @@ import math
 #####---------------------------DEFINE VARIABLES HERE-----------------------------------####
 landward_baseline_name = "lw_baseline" # define name here
 seaward_baseline_name = "sw_baseline" # define name here
-spacing = 20 # transect origin spacing in meters
+spacing = 5 # transect origin spacing in meters
 #####---------------------------END-------------------------------------------------####
 
 # recommended file structure
@@ -48,11 +48,11 @@ class TransectUtility:
     return newList
 
   @classmethod
-  def nextPoint(cls, azimuth, distance, origin):
+  def nextPoint(cls, azimuth, distance, origin) -> QgsPointXY:
     x = distance*math.cos(math.radians(90-azimuth))
     y = distance*math.sin(math.radians(90-azimuth))
 
-    return (origin[0]+x, origin[1]+y) 
+    return QgsPointXY(origin[0]+x, origin[1]+y) 
 
   @classmethod
   def format_output_path(cls, output_dirname: str):
@@ -166,8 +166,6 @@ class TransectGenerator:
     
     return transects
 
-
-  
   def filterTransects(self, transect_origins: List[QgsPointXY], transects_unfiltered: List[QgsLineString], distance: int, window_size: int) -> List[QgsLineString]:
     filtered_lines: List[QgsLineString] = []
 
@@ -183,7 +181,8 @@ class TransectGenerator:
 
     # create a new line based on the coordinates
     for azimuth, origin in zip(averaged_azimuths, transect_origins):
-      filtered_lines.append(QgsLineString(origin, TransectUtility.nextPoint(azimuth, distance, origin)))
+      line = [origin, TransectUtility.nextPoint(azimuth, distance, origin)]
+      filtered_lines.append(line)
 
     return filtered_lines
 
@@ -265,7 +264,7 @@ class TransectGenerator:
   def run(self):
     transect_origins = self.generateTransectOrigins() 
     transects = self.generateTransects(transect_origins)
-    transects = self.filterTransects(transect_origins, transects, 50, 5)
+    transects = self.filterTransects(transect_origins, transects, 90, 7)
 
     TransectUtility.init_output_path(self.output_path)
 
